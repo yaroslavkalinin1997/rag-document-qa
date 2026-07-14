@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ request.app.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <header class="brand">
+                <span class="brand-mark" aria-hidden="true">R</span>
+                <div>
+                    <strong>RAG Documents</strong>
+                    <span>Knowledge base</span>
+                </div>
+            </header>
+
+            <section class="sidebar-section">
+                <h2>Add a document</h2>
+                <form id="upload-form">
+                    <label class="file-picker" for="document-file">
+                        <span>Select a TXT file</span>
+                        <input
+                            id="document-file"
+                            name="file"
+                            type="file"
+                            accept=".txt,text/plain"
+                            required
+                        >
+                    </label>
+                    <button id="upload-button" type="submit">Upload and index</button>
+                    <p id="upload-status" class="status-message" role="status"></p>
+                </form>
+            </section>
+
+            <section class="sidebar-section documents-section">
+                <div class="section-heading">
+                    <h2>Documents</h2>
+                    <button id="refresh-documents" class="icon-button" type="button">
+                        Refresh
+                    </button>
+                </div>
+                <p id="documents-status" class="status-message" role="status"></p>
+                <ul id="document-list" class="document-list"></ul>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <section class="hero">
+                <p class="eyebrow">Document question answering</p>
+                <h1>Ask your knowledge base</h1>
+                <p>
+                    The answer is generated only from the indexed TXT documents.
+                </p>
+            </section>
+
+            <section class="question-panel">
+                <form id="question-form">
+                    <label for="question">Your question</label>
+                    <textarea
+                        id="question"
+                        name="question"
+                        maxlength="1000"
+                        placeholder="Where is the generator key stored?"
+                        required
+                    ></textarea>
+                    <div class="form-actions">
+                        <span id="question-status" class="status-message" role="status"></span>
+                        <button id="ask-button" type="submit">Ask documents</button>
+                    </div>
+                </form>
+            </section>
+
+            <article id="answer-card" class="answer-card" hidden>
+                <p class="eyebrow">Answer</p>
+                <p id="answer-text" class="answer-text"></p>
+                <div id="source-section" class="source-section" hidden>
+                    <h2>Sources</h2>
+                    <ul id="source-list" class="source-list"></ul>
+                </div>
+            </article>
+        </main>
+    </div>
+
+    <dialog id="document-dialog" class="document-dialog">
+        <div class="dialog-header">
+            <div>
+                <p class="eyebrow">Document</p>
+                <h2 id="dialog-title"></h2>
+            </div>
+            <form method="dialog">
+                <button class="icon-button" type="submit">Close</button>
+            </form>
+        </div>
+        <p id="dialog-meta" class="document-meta"></p>
+        <pre id="dialog-content" class="document-content"></pre>
+    </dialog>
+</body>
+</html>

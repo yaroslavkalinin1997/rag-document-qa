@@ -1,0 +1,360 @@
+:root {
+    color-scheme: light;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #17201c;
+    background: #f4f6f2;
+    font-synthesis: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+}
+
+button,
+textarea,
+input {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.72rem 1rem;
+    color: white;
+    background: #236b4e;
+    cursor: pointer;
+    transition: background 150ms ease, transform 150ms ease;
+}
+
+button:hover:not(:disabled) {
+    background: #19583e;
+}
+
+button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.app-shell {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) 1fr;
+    min-height: 100vh;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-right: 1px solid #dce3dc;
+    background: #ffffff;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.brand-mark {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: 12px;
+    color: white;
+    background: #236b4e;
+    font-size: 1.15rem;
+    font-weight: 750;
+}
+
+.brand div {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.brand span:last-child,
+.document-meta,
+.status-message {
+    color: #66726a;
+    font-size: 0.86rem;
+}
+
+.sidebar-section {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.sidebar-section h2,
+.source-section h2 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.file-picker {
+    display: grid;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+    color: #465149;
+    font-size: 0.9rem;
+}
+
+.file-picker input {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px dashed #9eaba1;
+    border-radius: 10px;
+    background: #f9fbf8;
+}
+
+#upload-button {
+    width: 100%;
+}
+
+.status-message {
+    min-height: 1.1rem;
+    margin: 0;
+}
+
+.status-message.error {
+    color: #a23b32;
+}
+
+.status-message.success {
+    color: #236b4e;
+}
+
+.documents-section {
+    min-height: 0;
+}
+
+.section-heading,
+.dialog-header,
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.icon-button {
+    padding: 0.45rem 0.65rem;
+    color: #465149;
+    background: #edf1ec;
+    font-size: 0.8rem;
+}
+
+.icon-button:hover:not(:disabled) {
+    background: #dfe6df;
+}
+
+.document-list,
+.source-list {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.document-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem;
+    border: 1px solid #e3e8e2;
+    border-radius: 12px;
+}
+
+.document-open,
+.source-button {
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    color: #26332b;
+    background: transparent;
+    text-align: left;
+}
+
+.document-open:hover:not(:disabled),
+.source-button:hover:not(:disabled) {
+    color: #18583e;
+    background: #eef6f1;
+}
+
+.document-name {
+    display: block;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-details {
+    display: block;
+    margin-top: 0.2rem;
+    color: #748078;
+    font-size: 0.74rem;
+}
+
+.delete-button {
+    padding: 0.45rem;
+    color: #8a413b;
+    background: transparent;
+    font-size: 0.75rem;
+}
+
+.delete-button:hover:not(:disabled) {
+    background: #f9ecea;
+}
+
+.main-content {
+    width: min(860px, 100%);
+    margin: 0 auto;
+    padding: clamp(2rem, 7vw, 5.5rem) clamp(1.2rem, 5vw, 4rem);
+}
+
+.hero {
+    margin-bottom: 2rem;
+}
+
+.eyebrow {
+    margin: 0 0 0.5rem;
+    color: #236b4e;
+    font-size: 0.75rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    letter-spacing: -0.04em;
+}
+
+.hero > p:last-child {
+    max-width: 620px;
+    margin: 0.8rem 0 0;
+    color: #5b675f;
+    line-height: 1.6;
+}
+
+.question-panel,
+.answer-card {
+    padding: clamp(1.1rem, 3vw, 1.7rem);
+    border: 1px solid #dfe5de;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 14px 40px rgb(27 48 35 / 7%);
+}
+
+.question-panel label {
+    display: block;
+    margin-bottom: 0.65rem;
+    font-weight: 700;
+}
+
+.question-panel textarea {
+    width: 100%;
+    min-height: 130px;
+    resize: vertical;
+    padding: 0.9rem;
+    border: 1px solid #cdd6ce;
+    border-radius: 12px;
+    color: #17201c;
+    background: #fbfcfa;
+    line-height: 1.5;
+}
+
+.question-panel textarea:focus {
+    border-color: #388061;
+    outline: 3px solid rgb(56 128 97 / 14%);
+}
+
+.form-actions {
+    margin-top: 0.8rem;
+}
+
+.answer-card {
+    margin-top: 1.25rem;
+}
+
+.answer-text {
+    margin: 0;
+    font-size: 1.08rem;
+    line-height: 1.7;
+}
+
+.source-section {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e7e1;
+}
+
+.source-list {
+    margin-top: 0.55rem;
+}
+
+.source-button {
+    width: 100%;
+    border: 1px solid #dce5dd;
+    border-radius: 10px;
+    font-size: 0.86rem;
+}
+
+.document-dialog {
+    width: min(820px, calc(100% - 2rem));
+    max-height: calc(100vh - 3rem);
+    padding: 1.5rem;
+    border: 0;
+    border-radius: 18px;
+    box-shadow: 0 24px 80px rgb(15 35 23 / 24%);
+}
+
+.document-dialog::backdrop {
+    background: rgb(13 27 19 / 45%);
+    backdrop-filter: blur(2px);
+}
+
+.dialog-header h2 {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.document-content {
+    max-height: 60vh;
+    overflow: auto;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f4f6f2;
+    font-family: inherit;
+    line-height: 1.55;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 780px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid #dce3dc;
+    }
+
+    .main-content {
+        padding-top: 2.5rem;
+    }
+}
