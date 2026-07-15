@@ -1,7 +1,7 @@
 [project]
 name = "my-first-pet-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "A small full-stack RAG application for asking questions about TXT documents"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

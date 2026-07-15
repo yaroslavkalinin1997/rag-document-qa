@@ -6,12 +6,17 @@ from psycopg.rows import dict_row
 from app.config import settings
 
 
+class DocumentLimitExceeded(Exception):
+    pass
+
+
 def create_document(
     filename: str,
     file_type: str,
     full_text: str,
     content_sha256: str,
     size_bytes: int,
+    max_documents: int | None = None,
 ) -> UUID:
     document_id = uuid4()
 
@@ -31,6 +36,19 @@ def create_document(
 
     with psycopg.connect(settings.database_url) as connection:
         with connection.cursor() as cursor:
+            if max_documents is not None:
+                cursor.execute(
+                    "LOCK TABLE documents IN SHARE ROW EXCLUSIVE MODE;"
+                )
+                cursor.execute("SELECT COUNT(*) FROM documents;")
+                result = cursor.fetchone()
+
+                if result is None:
+                    raise RuntimeError("PostgreSQL did not return a document count")
+
+                if result[0] >= max_documents:
+                    raise DocumentLimitExceeded
+
             cursor.execute(
                 query,
                 (

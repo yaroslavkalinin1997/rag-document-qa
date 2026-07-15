@@ -31,3 +31,19 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 
     UNIQUE (document_id, chunk_index)
 );
+
+CREATE TABLE IF NOT EXISTS rate_limit_counters (
+    action VARCHAR(20) NOT NULL
+        CHECK (action IN ('ask', 'upload')),
+    scope VARCHAR(20) NOT NULL
+        CHECK (scope IN ('site_day', 'ip_day', 'ip_minute')),
+    client_key VARCHAR(64) NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL,
+    request_count INTEGER NOT NULL
+        CHECK (request_count > 0),
+
+    PRIMARY KEY (action, scope, client_key, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS rate_limit_counters_window_start_idx
+    ON rate_limit_counters (window_start);

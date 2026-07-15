@@ -24,6 +24,7 @@ from app.chunking import split_text
 from app.config import settings
 from app.db import check_database_connection
 from app.document_repository import (
+    DocumentLimitExceeded,
     create_document,
     delete_document,
     get_document,
@@ -40,9 +41,18 @@ from app.schemas import (
 )
 
 from app.generation import generate_answer
+from app.rate_limiter import (
+    RateLimitExceeded,
+    consume_ask_limit,
+    consume_upload_limit,
+    gemini_slot,
+    get_client_key,
+)
 
 
-MAX_FILE_SIZE = 2 * 1024 * 1024
+MAX_FILE_SIZE = 1 * 1024 * 1024
+MAX_CHUNKS_PER_DOCUMENT = 300
+MAX_DOCUMENTS = 30
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI(title=settings.app_name)
@@ -80,7 +90,10 @@ def get_documents() -> list[dict[str, object]]:
     return list_documents()
 
 @app.post("/documents", status_code=status.HTTP_201_CREATED)
-def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
+def upload_document(
+    request: Request,
+    file: UploadFile = File(...),
+) -> dict[str, object]:
     filename = Path((file.filename or "").replace("\\", "/")).name
 
     if Path(filename).suffix.lower() != ".txt":
@@ -112,39 +125,65 @@ def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
             detail="The file is empty",
         )
 
-    try:
-        document_id = create_document(
-            filename=filename,
-            file_type="txt",
-            full_text=full_text,
-            content_sha256=sha256(content_bytes).hexdigest(),
-            size_bytes=len(content_bytes),
-        )
-    except psycopg.errors.UniqueViolation as error:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This document has already been uploaded",
-        ) from error
-    
-    try:
-        chunks = split_text(full_text)
-        embeddings = embed_documents(chunks)
+    chunks = split_text(full_text)
 
-        replace_document_chunks(
-            document_id=document_id,
-            chunks=chunks,
-            embeddings=embeddings,
-        )
-    except Exception as error:
-        mark_document_failed(
-            document_id=document_id,
-            error_message=str(error)[:2000],
+    if len(chunks) > MAX_CHUNKS_PER_DOCUMENT:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                "The document produces more than "
+                f"{MAX_CHUNKS_PER_DOCUMENT} chunks"
+            ),
         )
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Document processing failed",
-        ) from error
+    with gemini_slot() as acquired:
+        if not acquired:
+            raise _gemini_busy_http_exception()
+
+        try:
+            document_id = create_document(
+                filename=filename,
+                file_type="txt",
+                full_text=full_text,
+                content_sha256=sha256(content_bytes).hexdigest(),
+                size_bytes=len(content_bytes),
+                max_documents=MAX_DOCUMENTS,
+            )
+        except psycopg.errors.UniqueViolation as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This document has already been uploaded",
+            ) from error
+        except DocumentLimitExceeded as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"The database already contains {MAX_DOCUMENTS} documents",
+            ) from error
+
+        try:
+            consume_upload_limit(get_client_key(request))
+        except RateLimitExceeded as error:
+            delete_document(document_id)
+            raise _rate_limit_http_exception(error) from error
+
+        try:
+            embeddings = embed_documents(chunks)
+
+            replace_document_chunks(
+                document_id=document_id,
+                chunks=chunks,
+                embeddings=embeddings,
+            )
+        except Exception as error:
+            mark_document_failed(
+                document_id=document_id,
+                error_message=str(error)[:2000],
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Document processing failed",
+            ) from error
 
     return {
         "id": str(document_id),
@@ -155,28 +194,47 @@ def upload_document(file: UploadFile = File(...)) -> dict[str, object]:
 
 @app.post("/search")
 def search_documents(
-    request: SearchRequest,
+    request: Request,
+    payload: SearchRequest,
 ) -> list[dict[str, object]]:
-    query_embedding = embed_query(request.question)
+    with gemini_slot() as acquired:
+        if not acquired:
+            raise _gemini_busy_http_exception()
 
-    return search_similar_chunks(
-        query_embedding=query_embedding,
-        limit=request.limit,
-    )
+        try:
+            consume_ask_limit(get_client_key(request))
+        except RateLimitExceeded as error:
+            raise _rate_limit_http_exception(error) from error
+
+        query_embedding = embed_query(payload.question)
+
+        return search_similar_chunks(
+            query_embedding=query_embedding,
+            limit=payload.limit,
+        )
 
 @app.post("/ask", response_model=AskResponse)
-def ask_question(request: AskRequest) -> AskResponse:
-    query_embedding = embed_query(request.question)
+def ask_question(request: Request, payload: AskRequest) -> AskResponse:
+    with gemini_slot() as acquired:
+        if not acquired:
+            raise _gemini_busy_http_exception()
 
-    chunks = search_similar_chunks(
-        query_embedding=query_embedding,
-        limit=3,
-    )
+        try:
+            consume_ask_limit(get_client_key(request))
+        except RateLimitExceeded as error:
+            raise _rate_limit_http_exception(error) from error
 
-    answer = generate_answer(
-        question=request.question,
-        chunks=chunks,
-    )
+        query_embedding = embed_query(payload.question)
+
+        chunks = search_similar_chunks(
+            query_embedding=query_embedding,
+            limit=3,
+        )
+
+        answer = generate_answer(
+            question=payload.question,
+            chunks=chunks,
+        )
 
     sources: list[SourceResponse] = []
     seen_document_ids: set[UUID] = set()
@@ -211,6 +269,22 @@ def ask_question(request: AskRequest) -> AskResponse:
     return AskResponse(
         answer=clean_answer,
         sources=sources,
+    )
+
+
+def _rate_limit_http_exception(error: RateLimitExceeded) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=error.message,
+        headers={"Retry-After": str(error.retry_after)},
+    )
+
+
+def _gemini_busy_http_exception() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Gemini is busy. Try again shortly",
+        headers={"Retry-After": "5"},
     )
 
 @app.get("/documents/{document_id}")
